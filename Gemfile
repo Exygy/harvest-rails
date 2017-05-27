@@ -8,8 +8,6 @@ end
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 gem 'rails', '~> 5.1.1'
-# Use sqlite3 as the database for Active Record
-gem 'sqlite3'
 # Use Puma as the app server
 gem 'puma', '~> 3.6.2'
 # Use SCSS for stylesheets
@@ -67,3 +65,6 @@ gem "forecast", github: 'njiuko/forecast'
 
 # Added at 2017-05-27 03:19:10 -0700 by dkaplan:
 gem "webpacker", "~> 2.0"
+
+# Added at 2017-05-27 16:23:21 -0700 by dkaplan:
+gem "pg", "~> 0.20.0"
