@@ -52,6 +52,8 @@ group :development do
   gem 'spring-watcher-listen', '~> 2.0.0'
   gem "pry-rails", "~> 0.3.6"
   gem "binding_of_caller", "~> 0.7.2"
+  # Added at 2017-05-27 16:06:28 -0700 by dkaplan:
+  gem "foreman", "~> 0.84.0"
 end
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
@@ -62,3 +64,6 @@ gem "harvested", "~> 4.0"
 
 # Added at 2017-05-27 00:28:58 -0700 by dkaplan:
 gem "forecast", github: 'njiuko/forecast'
+
+# Added at 2017-05-27 03:19:10 -0700 by dkaplan:
+gem "webpacker", "~> 2.0"
