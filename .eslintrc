@@ -1,0 +1,10 @@
+{
+  "extends": "react-app",
+  "rules": {
+    # "no-unused-vars": 0,
+  },
+  "globals" : {
+    "React": true,
+    "ReactDOM": true,
+  },
+}

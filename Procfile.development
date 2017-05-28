@@ -1,2 +1,2 @@
-webpack: bin/webpack-dev-server
+webpack: bin/webpack-dev-server --hot
 rails: bin/rails server -p 3000

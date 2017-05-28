@@ -5,7 +5,6 @@ git_source(:github) do |repo_name|
   "https://github.com/#{repo_name}.git"
 end
 
-
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 gem 'rails', '~> 5.1.1'
 # Use Puma as the app server
@@ -31,9 +30,16 @@ gem 'jbuilder', '~> 2.5'
 # Use Capistrano for deployment
 # gem 'capistrano-rails', group: :development
 
+gem "harvested", "~> 4.0"
+gem "forecast", github: 'Exygy/forecast'
+gem "webpacker", "~> 2.0"
+gem "pg", "~> 0.20.0"
+
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
   gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]
+  gem "pry-rails", "~> 0.3.6"
+  gem "binding_of_caller", "~> 0.7.2"
   # Adds support for Capybara system testing and selenium driver
   gem 'capybara', '~> 2.13'
   gem 'selenium-webdriver'
@@ -48,23 +54,5 @@ group :development do
   # Spring speeds up development by keeping your application running in the background. Read more: https://github.com/rails/spring
   gem 'spring'
   gem 'spring-watcher-listen', '~> 2.0.0'
-  gem "pry-rails", "~> 0.3.6"
-  gem "binding_of_caller", "~> 0.7.2"
-  # Added at 2017-05-27 16:06:28 -0700 by dkaplan:
   gem "foreman", "~> 0.84.0"
 end
-
-# Windows does not include zoneinfo files, so bundle the tzinfo-data gem
-gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
-
-# Added at 2017-05-26 23:00:57 -0700 by dkaplan:
-gem "harvested", "~> 4.0"
-
-# Added at 2017-05-27 00:28:58 -0700 by dkaplan:
-gem "forecast", github: 'njiuko/forecast'
-
-# Added at 2017-05-27 03:19:10 -0700 by dkaplan:
-gem "webpacker", "~> 2.0"
-
-# Added at 2017-05-27 16:23:21 -0700 by dkaplan:
-gem "pg", "~> 0.20.0"
