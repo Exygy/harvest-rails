@@ -1,6 +1,4 @@
 Rails.application.routes.draw do
-  root to: 'pages#index'
-
   ## --- API namespacing
   namespace :api do
     namespace :v1 do
@@ -9,4 +7,8 @@ Rails.application.routes.draw do
       end
     end
   end
+
+  root to: 'pages#index'
+  # required for client-side routing
+  get '*path' => 'pages#index'
 end

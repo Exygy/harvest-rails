@@ -4,7 +4,7 @@ class HarvestService
     Harvest.client(
       subdomain: 'exygy',
       username: ENV['HARVEST_USERNAME'],
-      password: ENV['HARVEST_PASSWORD']
+      password: ENV['HARVEST_PASSWORD'],
     )
   end
 
@@ -17,17 +17,33 @@ class HarvestService
     end
   end
 
-  def self.everything(week = 0)
-    all_users.collect do |user|
-      weekly_time_by_user(user.keys.first, week)
+  def self.weekly_data(week = 0)
+    Rails.cache.fetch("weekly_data_#{week}", expires_in: 60.minutes) do
+      all_users.collect do |user|
+        weekly_time_by_user(user.keys.first, week)
+      end
     end
   end
 
   def self.weekly_time_by_user(user_id, week = 0)
     puts "getting person for user: #{user_id}..."
     f_pers = forecast_person(user_id)
-    name = "#{f_pers.attributes['first_name']} #{f_pers.attributes['last_name']}"
     return unless f_pers
+    name = "#{f_pers.attributes['first_name']} #{f_pers.attributes['last_name']}"
+    timesheets = weekly_time_by_person(f_pers, user_id, week)
+    # binding.pry
+    total_forecasted = timesheets.collect(&:forecasted).sum
+    total_hours = timesheets.collect(&:total).sum
+    {
+      name: name,
+      week: week,
+      total_forecasted: total_forecasted.round(2),
+      total_hours: total_hours.round(2),
+      timesheets: timesheets,
+    }
+  end
+
+  def self.weekly_time_by_person(f_pers, user_id, week = 0)
     today = Date.today + week.weeks # weeks should be negative to look back
     beginning_date = today.beginning_of_week
     end_date = week.zero? ? today : (today.end_of_week - 2.days) # turn it into Friday
@@ -40,13 +56,12 @@ class HarvestService
       next unless f_proj
       assigned_hours = forecast_assignments_for_week(f_proj, f_pers, beginning_date, end_date)
       next unless assigned_hours
-      {
-        name: name,
+      Hashie::Mash.new(
         project: f_proj.attributes['name'],
         project_id: id,
-        total: t.collect { |x| x['hours'] }.sum,
-        forecasted: assigned_hours
-      }
+        total: t.collect { |x| x['hours'] }.sum.round(2),
+        forecasted: assigned_hours,
+      )
     end.compact
   end
 
@@ -68,10 +83,10 @@ class HarvestService
   end
 
   def self.forecast_all_assignments_for_week(beginning_date, end_date)
-    Rails.cache.fetch "all_assignments_#{beginning_date.to_s}_#{end_date.to_s}" do
+    Rails.cache.fetch "all_assignments_#{beginning_date}_#{end_date}" do
       Forecast::Assignment.all(
         start_date: beginning_date.to_s,
-        end_date: end_date.to_s
+        end_date: end_date.to_s,
       )
     end
   end

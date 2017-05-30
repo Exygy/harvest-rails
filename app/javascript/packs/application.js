@@ -1,8 +1,10 @@
-import Hello from './Hello'
+import { BrowserRouter } from 'react-router-dom'
+import Layout from '../components/Layout'
 
 document.addEventListener('DOMContentLoaded', () => {
-  ReactDOM.render(
-    <Hello />,
-    document.body.appendChild(document.createElement('div'))
-  )
+  ReactDOM.render((
+    <BrowserRouter>
+      <Layout />
+    </BrowserRouter>
+  ), document.getElementById('react-root'))
 })
