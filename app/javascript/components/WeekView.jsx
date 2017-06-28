@@ -7,7 +7,7 @@ const WeekView = (props) => {
   let { timesheetFetch } = props
   let data = {}
   let week = props.match.params.week
-  let weekBeginning = moment().add(week, 'weeks').startOf('week').format('MMMM Do YYYY')
+  let weekBeginning = moment().add(week, 'weeks').startOf('isoweek').format('MMMM Do YYYY')
   let timesheets = []
   if (timesheetFetch.fulfilled) {
     data = timesheetFetch.value.data

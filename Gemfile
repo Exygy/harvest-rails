@@ -1,4 +1,5 @@
 source 'https://rubygems.org'
+ruby '2.3.3'
 
 git_source(:github) do |repo_name|
   repo_name = "#{repo_name}/#{repo_name}" unless repo_name.include?("/")
@@ -34,6 +35,7 @@ gem "harvested", "~> 4.0"
 gem "forecast", github: 'Exygy/forecast'
 gem "webpacker", "~> 2.0"
 gem "pg", "~> 0.20.0"
+gem "dalli", "~> 2.7"
 
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
@@ -55,4 +57,8 @@ group :development do
   gem 'spring'
   gem 'spring-watcher-listen', '~> 2.0.0'
   gem "foreman", "~> 0.84.0"
+end
+
+group :production do
+  gem "memcachier", "~> 0.0.2"
 end

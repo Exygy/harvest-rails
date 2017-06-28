@@ -1,2 +1,3 @@
 webpack: bin/webpack-dev-server --hot
 rails: bin/rails server -p 3000
+memcached: memcached
