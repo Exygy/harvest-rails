@@ -46,7 +46,7 @@ class HarvestService
   def self.weekly_time_by_person(f_pers, user_id, week = 0)
     today = Date.today + week.weeks # weeks should be negative to look back
     beginning_date = today.beginning_of_week(:monday)
-    end_date = week.zero? ? today : today.end_of_week(:sunday)
+    end_date = week.zero? ? today : today.end_of_week(:monday)
     puts "loading harvest logs, week: #{week} for #{name}..."
 
     f_pers_id = f_pers.attributes['id']
@@ -57,7 +57,7 @@ class HarvestService
     logged_hours = grouped.map do |id, logs|
       puts "getting project for harvest_id #{id}..."
       f_proj = forecast_project(id)
-      next unless f_proj
+      next unless f_proj && !f_proj.attributes['archived']
       f_proj_id = f_proj.attributes['id']
       assigned_proj_hours = assigned_hours.find { |x| x[:proj_id] == f_proj_id }
       forecasted = assigned_proj_hours ? assigned_proj_hours.forecasted : 0
@@ -72,7 +72,7 @@ class HarvestService
     assigned_hours.each do |assigned_proj|
       next unless logged_hours.select { |x| x.project_id == assigned_proj.proj_id }.empty?
       f_proj = forecast_project_by_id(assigned_proj.proj_id)
-      next unless f_proj && f_proj.attributes['harvest_id']
+      next unless f_proj && !f_proj.attributes['archived'] && f_proj.attributes['harvest_id']
       logged = Hashie::Mash.new(
         project: f_proj.attributes['name'],
         project_id: f_proj.attributes['id'],
@@ -97,8 +97,8 @@ class HarvestService
         hrs = attrs['allocation'] / 3600.0
         week_start = [Date.parse(attrs['start_date']), beginning_date].max
         week_end = [Date.parse(attrs['end_date']), end_date].min
-        days = (week_end - week_start).to_i + 1
-        hrs * days
+        business_days = [((week_end - week_start).to_i + 1), 5].min
+        hrs * business_days
       end.compact.sum
       Hashie::Mash.new(
         proj_id: id,

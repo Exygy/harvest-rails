@@ -1,7 +1,9 @@
 import moment from 'moment'
 import { connect } from 'react-refetch'
 import PropTypes from 'prop-types'
-import WeeklyTimesheet from './WeeklyTimesheet'
+import {BootstrapTable, TableHeaderColumn} from 'react-bootstrap-table';
+// import WeeklyTimesheet from './WeeklyTimesheet'
+
 
 const WeekView = (props) => {
   let { timesheetFetch } = props
@@ -11,12 +13,21 @@ const WeekView = (props) => {
   let timesheets = []
   if (timesheetFetch.fulfilled) {
     data = timesheetFetch.value.data
-    data.forEach((person) => {
-      if (person.total_forecasted === 0) return
-      timesheets.push(
-        <WeeklyTimesheet person={person} key={person.name} />
-      )
-    })
+    // data.forEach((person) => {
+    //   if (person.total_forecasted === 0) return
+    //   timesheets.push(
+    //     <WeeklyTimesheet person={person} key={person.name} />
+    //   )
+    // })
+
+    timesheets = (
+      <BootstrapTable data={ data }>
+        <TableHeaderColumn dataField='name' isKey>Name</TableHeaderColumn>
+        <TableHeaderColumn dataField='total_forecasted'>Forecast</TableHeaderColumn>
+        <TableHeaderColumn dataField='total_hours'>Actual</TableHeaderColumn>
+      </BootstrapTable>
+    )
+
     return (
       <div>
         <h1>Timesheet for {weekBeginning}</h1>
