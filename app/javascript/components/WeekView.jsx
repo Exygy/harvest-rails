@@ -1,7 +1,10 @@
 import moment from 'moment'
 import { connect } from 'react-refetch'
 import PropTypes from 'prop-types'
-import {BootstrapTable, TableHeaderColumn} from 'react-bootstrap-table';
+import _ from 'lodash'
+// import ReactTable from 'react-table'
+// import 'react-table/react-table.css'
+import {BootstrapTable, TableHeaderColumn} from 'react-bootstrap-table'
 // import WeeklyTimesheet from './WeeklyTimesheet'
 
 
@@ -13,18 +16,22 @@ const WeekView = (props) => {
   let timesheets = []
   if (timesheetFetch.fulfilled) {
     data = timesheetFetch.value.data
-    // data.forEach((person) => {
-    //   if (person.total_forecasted === 0) return
-    //   timesheets.push(
-    //     <WeeklyTimesheet person={person} key={person.name} />
-    //   )
-    // })
+
+    // add row for TOTAL
+    let totals = {
+      name: 'TOTAL',
+      total_forecasted: _.sumBy(data, 'total_forecasted'),
+      total_hours: _.sumBy(data, 'total_hours'),
+      diff: _.sumBy(data, 'diff')
+    }
+    data.push(totals)
 
     timesheets = (
       <BootstrapTable data={ data }>
         <TableHeaderColumn dataField='name' isKey>Name</TableHeaderColumn>
         <TableHeaderColumn dataField='total_forecasted'>Forecast</TableHeaderColumn>
         <TableHeaderColumn dataField='total_hours'>Actual</TableHeaderColumn>
+        <TableHeaderColumn dataField='diff'>Difference</TableHeaderColumn>
       </BootstrapTable>
     )
 

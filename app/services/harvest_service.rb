@@ -10,9 +10,14 @@ class HarvestService
 
   def self.all_users
     Rails.cache.fetch('all_users') do
-      all = api.users.all.reject { |u| u['is_contractor'] || !u['is_active'] }
+      # all = api.users.all.reject { |u| u['is_contractor'] || !u['is_active'] }
+      all = api.users.all.select { |u| u['is_active'] }
       all.collect do |u|
-        { u['id'] => "#{u['first_name']} #{u['last_name']}" }
+        {
+          harvest_id: u['id'],
+          name: "#{u['first_name']} #{u['last_name']}",
+          is_contractor: u['is_contractor'],
+        }
       end
     end
   end
@@ -20,25 +25,27 @@ class HarvestService
   def self.weekly_data(week = 0)
     Rails.cache.fetch("weekly_data_#{week}", expires_in: 60.minutes) do
       all_users.collect do |user|
-        weekly_time_by_user(user.keys.first, week)
-      end
+        weekly_time_by_user(user, week)
+      end.compact
     end
   end
 
-  def self.weekly_time_by_user(user_id, week = 0)
-    puts "getting person for user: #{user_id}..."
+  def self.weekly_time_by_user(user, week = 0)
+    user_id = user[:harvest_id]
+    puts "getting person for user: #{user_id}; #{user[:name]}..."
     f_pers = forecast_person(user_id)
     return unless f_pers
-    name = "#{f_pers.attributes['first_name']} #{f_pers.attributes['last_name']}"
     timesheets = weekly_time_by_person(f_pers, user_id, week)
-
-    total_forecasted = timesheets.collect(&:forecasted).sum
-    total_hours = timesheets.collect(&:total).sum
+    total_forecasted = timesheets.collect(&:forecasted).sum.round(2)
+    total_hours = timesheets.collect(&:total).sum.round(2)
+    diff = (total_hours - total_forecasted).round(2)
     {
-      name: name,
+      name: user[:name],
+      is_contractor: user[:is_contractor],
       week: week,
-      total_forecasted: total_forecasted.round(2),
-      total_hours: total_hours.round(2),
+      total_forecasted: total_forecasted,
+      total_hours: total_hours,
+      diff: diff,
       timesheets: timesheets,
     }
   end
@@ -51,24 +58,9 @@ class HarvestService
 
     f_pers_id = f_pers.attributes['id']
     assigned_hours = forecast_assignments_for_week(f_pers_id, beginning_date, end_date)
-    times = api.reports.time_by_user(user_id, beginning_date, end_date)
-    grouped = times.group_by { |time_group| time_group['project_id'] }
+    logged_hours = collect_logged_hours(user_id, assigned_hours, beginning_date, end_date)
 
-    logged_hours = grouped.map do |id, logs|
-      puts "getting project for harvest_id #{id}..."
-      f_proj = forecast_project(id)
-      next unless f_proj && !f_proj.attributes['archived']
-      f_proj_id = f_proj.attributes['id']
-      assigned_proj_hours = assigned_hours.find { |x| x[:proj_id] == f_proj_id }
-      forecasted = assigned_proj_hours ? assigned_proj_hours.forecasted : 0
-      Hashie::Mash.new(
-        project: f_proj.attributes['name'],
-        project_id: f_proj_id,
-        total: logs.collect { |x| x['hours'] }.sum.round(2),
-        forecasted: forecasted,
-      )
-    end.compact
-
+    # also collect forecasted projects where the person didn't log any time in harvest
     assigned_hours.each do |assigned_proj|
       next unless logged_hours.select { |x| x.project_id == assigned_proj.proj_id }.empty?
       f_proj = forecast_project_by_id(assigned_proj.proj_id)
@@ -85,6 +77,33 @@ class HarvestService
     logged_hours
   end
 
+  def self.collect_logged_hours(user_id, assigned_hours, beginning_date, end_date)
+    times = api.reports.time_by_user(user_id, beginning_date, end_date)
+    grouped = times.group_by { |time_group| time_group['project_id'] }
+    grouped.map do |id, logs|
+      h_proj = harvest_project_by_id(id)
+      # remove unbillable projects
+      next unless h_proj['billable'] && h_proj['bill_by'] != 'none'
+      puts "getting forecast project #{h_proj['name']}; #{id}..."
+      # remove unbillable time logged (e.g. to "Business Development" task within a project)
+      logs = logs.select do |l|
+        h_task = harvest_task_by_id(l['task_id'])
+        h_task && h_task['billable_by_default']
+      end
+      f_proj = forecast_project(id)
+      next unless f_proj && !f_proj.attributes['archived']
+      f_proj_id = f_proj.attributes['id']
+      assigned_proj_hours = assigned_hours.find { |x| x[:proj_id] == f_proj_id }
+      forecasted = assigned_proj_hours ? assigned_proj_hours.forecasted : 0
+      Hashie::Mash.new(
+        project: f_proj.attributes['name'],
+        project_id: f_proj_id,
+        total: logs.collect { |x| x['hours'] }.sum.round(2),
+        forecasted: forecasted,
+      )
+    end.compact
+  end
+
   def self.forecast_assignments_for_week(f_pers_id, beginning_date, end_date)
     puts "getting assignments... person_id: #{f_pers_id}"
     assignments = forecast_all_assignments_for_week(beginning_date, end_date).select do |assn|
@@ -97,7 +116,8 @@ class HarvestService
         hrs = attrs['allocation'] / 3600.0
         week_start = [Date.parse(attrs['start_date']), beginning_date].max
         week_end = [Date.parse(attrs['end_date']), end_date].min
-        business_days = [((week_end - week_start).to_i + 1), 5].min
+        business_days = num_of_weekdays(week_start, week_end)
+        # puts "hrs #{hrs}; business_days: #{business_days}; #{week_start} - #{week_end}; #{id}"
         hrs * business_days
       end.compact.sum
       Hashie::Mash.new(
@@ -128,6 +148,26 @@ class HarvestService
     end
   end
 
+  def self.all_harvest_projects
+    Rails.cache.fetch 'all_harvest_projects' do
+      api.projects.all
+    end
+  end
+
+  def self.all_harvest_tasks
+    Rails.cache.fetch 'all_harvest_tasks' do
+      api.tasks.all
+    end
+  end
+
+  def self.harvest_project_by_id(h_id)
+    all_harvest_projects.find { |p| p['id'] == h_id }
+  end
+
+  def self.harvest_task_by_id(h_id)
+    all_harvest_tasks.find { |t| t['id'] == h_id }
+  end
+
   def self.forecast_project_by_id(f_id)
     all_forecast_projects.find { |p| p.attributes['id'] == f_id }
   end
@@ -138,5 +178,9 @@ class HarvestService
 
   def self.forecast_person(h_id)
     all_forecast_people.find { |p| p.attributes['harvest_user_id'] == h_id }
+  end
+
+  def self.num_of_weekdays(beginning_date, end_date)
+    (beginning_date..end_date).select { |d| (1..5).cover?(d.wday) }.size
   end
 end
