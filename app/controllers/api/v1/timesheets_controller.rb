@@ -1,8 +1,9 @@
 # RESTful JSON API to retrieve data for timesheets
 class Api::V1::TimesheetsController < ApiController
   def search
-    week = params[:week].to_i || 0
-    @data = HarvestService.weekly_data(week)
+    date = params[:date] || Date.today.to_s
+    period = params[:period] || 'week'
+    @data = HarvestService.periodic_data(date, period)
     render json: { data: @data }
   end
 end

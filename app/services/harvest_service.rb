@@ -8,9 +8,18 @@ class HarvestService
     )
   end
 
+  def self.periodic_data(date = Date.today, period = 'week')
+    Rails.cache.fetch("periodic_#{period}_data_#{date}", expires_in: 24.hours) do
+      all_users.collect do |user|
+        time_by_user_for_period(user, date, period)
+      end.compact
+    end
+  end
+
+  ########
+
   def self.all_users
     Rails.cache.fetch('all_users') do
-      # all = api.users.all.reject { |u| u['is_contractor'] || !u['is_active'] }
       all = api.users.all.select { |u| u['is_active'] }
       all.collect do |u|
         {
@@ -22,27 +31,36 @@ class HarvestService
     end
   end
 
-  def self.weekly_data(week = 0)
-    Rails.cache.fetch("weekly_data_#{week}", expires_in: 60.minutes) do
-      all_users.collect do |user|
-        weekly_time_by_user(user, week)
-      end.compact
-    end
+  def self.weekly_time_by_user(user, week = 0)
+    today = Date.today + week.weeks # weeks should be negative to look back
+    beginning_date = today.beginning_of_week(:monday)
+    end_date = week.zero? ? today : today.end_of_week(:monday)
+    time_by_user(user, beginning_date, end_date)
   end
 
-  def self.weekly_time_by_user(user, week = 0)
+  def self.time_by_user_for_period(user, date, period = 'week')
+    date = Date.parse(date) unless date.is_a?(Date)
+    beginning_date = date.send("beginning_of_#{period}")
+    end_date = date.send("end_of_#{period}")
+    end_date = Date.today if end_date > Date.today
+    time_by_user(user, beginning_date, end_date)
+  end
+
+  def self.time_by_user(user, beginning_date, end_date)
     user_id = user[:harvest_id]
     puts "getting person for user: #{user_id}; #{user[:name]}..."
     f_pers = forecast_person(user_id)
     return unless f_pers
-    timesheets = weekly_time_by_person(f_pers, user_id, week)
+
+    timesheets = time_by_person(f_pers, user_id, beginning_date, end_date)
     total_forecasted = timesheets.collect(&:forecasted).sum.round(2)
     total_hours = timesheets.collect(&:total).sum.round(2)
     diff = (total_hours - total_forecasted).round(2)
     {
       name: user[:name],
       is_contractor: user[:is_contractor],
-      week: week,
+      beginning_date: beginning_date,
+      end_date: end_date,
       total_forecasted: total_forecasted,
       total_hours: total_hours,
       diff: diff,
@@ -50,14 +68,10 @@ class HarvestService
     }
   end
 
-  def self.weekly_time_by_person(f_pers, user_id, week = 0)
-    today = Date.today + week.weeks # weeks should be negative to look back
-    beginning_date = today.beginning_of_week(:monday)
-    end_date = week.zero? ? today : today.end_of_week(:monday)
-    puts "loading harvest logs, week: #{week} for #{name}..."
-
+  def self.time_by_person(f_pers, user_id, beginning_date, end_date)
+    puts "loading harvest logs: #{beginning_date} - #{end_date} for #{name}..."
     f_pers_id = f_pers.attributes['id']
-    assigned_hours = forecast_assignments_for_week(f_pers_id, beginning_date, end_date)
+    assigned_hours = forecast_assignments_for_range(f_pers_id, beginning_date, end_date)
     logged_hours = collect_logged_hours(user_id, assigned_hours, beginning_date, end_date)
 
     # also collect forecasted projects where the person didn't log any time in harvest
@@ -104,9 +118,9 @@ class HarvestService
     end.compact
   end
 
-  def self.forecast_assignments_for_week(f_pers_id, beginning_date, end_date)
+  def self.forecast_assignments_for_range(f_pers_id, beginning_date, end_date)
     puts "getting assignments... person_id: #{f_pers_id}"
-    assignments = forecast_all_assignments_for_week(beginning_date, end_date).select do |assn|
+    assignments = forecast_all_assignments_for_range(beginning_date, end_date).select do |assn|
       assn.attributes['person_id'] == f_pers_id
     end
     assignments.group_by { |x| x.attributes['project_id'] }.collect do |id, assns|
@@ -127,7 +141,7 @@ class HarvestService
     end
   end
 
-  def self.forecast_all_assignments_for_week(beginning_date, end_date)
+  def self.forecast_all_assignments_for_range(beginning_date, end_date)
     Rails.cache.fetch "all_assignments_#{beginning_date}_#{end_date}" do
       Forecast::Assignment.all(
         start_date: beginning_date.to_s,
