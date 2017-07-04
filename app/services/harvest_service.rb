@@ -9,7 +9,7 @@ class HarvestService
   end
 
   def self.periodic_data(date = Date.today, period = 'week')
-    Rails.cache.fetch("periodic_#{period}_data_#{date}", force: true, expires_in: 24.hours) do
+    Rails.cache.fetch("periodic_#{period}_data_#{date}", expires_in: 15.minutes) do
       Person.all.collect do |person|
         next unless person.harvest_logs.count > 0
         time_by_person_for_period(person, date, period)

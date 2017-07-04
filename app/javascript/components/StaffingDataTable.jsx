@@ -85,9 +85,6 @@ const StaffingDataTable = (props) => {
           let total_f = _.sumBy(props.data, 'total_forecasted')
           let total_h = _.sumBy(props.data, 'total_hours')
           let total_d = total_h - total_f
-          console.log(total_d)
-          console.log(total_f)
-          console.log('---')
           return (100 * total_d / total_f).toFixed(2)
         }
       },
