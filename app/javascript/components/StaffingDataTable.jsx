@@ -25,7 +25,7 @@ const StaffingDataTable = (props) => {
       break
     case 'week':
     default:
-      period = 'isoweek'
+      startDate = moment(date).startOf('isoweek').format('MMMM Do YYYY')
       timePeriod = `Week ${moment(date).format('W')}: ${startDate}`
       break
   }
@@ -75,6 +75,20 @@ const StaffingDataTable = (props) => {
         accessor: 'diff',
         Footer: (props) => {
           return  _.sumBy(props.data, 'diff').toFixed(2)
+        }
+      },
+      {
+        Header: 'Diff %',
+        id: d => 100 * d.diff / (d.total_forecasted || 1),
+        accessor: d => (100 * d.diff / (d.total_forecasted || 1)).toFixed(2),
+        Footer: (props) => {
+          let total_f = _.sumBy(props.data, 'total_forecasted')
+          let total_h = _.sumBy(props.data, 'total_hours')
+          let total_d = total_h - total_f
+          console.log(total_d)
+          console.log(total_f)
+          console.log('---')
+          return (100 * total_d / total_f).toFixed(2)
         }
       },
       {

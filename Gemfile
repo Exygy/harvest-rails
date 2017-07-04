@@ -31,11 +31,13 @@ gem 'jbuilder', '~> 2.5'
 # Use Capistrano for deployment
 # gem 'capistrano-rails', group: :development
 
-gem "harvested", "~> 4.0"
-gem "forecast", github: 'Exygy/forecast'
-gem "webpacker", "~> 2.0"
-gem "pg", "~> 0.20.0"
-gem "dalli", "~> 2.7"
+gem 'nokogiri', '~> 1.8.0'
+gem 'harvested', '~> 4.0'
+gem 'forecast', github: 'Exygy/forecast'
+gem 'webpacker', '~> 2.0'
+# gem 'pg', '~> 0.20.0'
+gem 'dalli', '~> 2.7'
+gem 'mongoid', '~> 6.2.0'
 
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
