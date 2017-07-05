@@ -19,13 +19,6 @@ class HarvestService
 
   ########
 
-  def self.weekly_time_by_person(person, week = 0)
-    today = Date.today + week.weeks # weeks should be negative to look back
-    beginning_date = today.beginning_of_week(:monday)
-    end_date = week.zero? ? today : today.end_of_week(:monday)
-    time_by_person(person, beginning_date, end_date)
-  end
-
   def self.time_by_person_for_period(person, date, period = 'week')
     date = Date.parse(date) unless date.is_a?(Date)
     beginning_date = date.send("beginning_of_#{period}")
@@ -82,12 +75,7 @@ class HarvestService
     grouped.map do |id, logs|
       project = Project.where(harvest_id: id).first
       next unless project
-      puts "getting forecast project #{project.name}; #{id}..."
-      # # remove unbillable time logged (e.g. to "Business Development" task within a project)
-      # logs = logs.select do |l|
-      #   h_task = harvest_task_by_id(l['task_id'])
-      #   h_task && h_task['billable_by_default']
-      # end
+      # puts "getting forecast project #{project.name}; #{id}..."
       assigned_proj_hours = assigned_hours.find { |x| x[:project_id] == project.forecast_id }
       forecasted = assigned_proj_hours ? assigned_proj_hours.forecasted : 0
       Hashie::Mash.new(
@@ -100,7 +88,7 @@ class HarvestService
   end
 
   def self.forecast_assignments_for_range(person, beginning_date, end_date)
-    puts "getting assignments... person_id: #{person.forecast_id}"
+    # puts "getting assignments... person_id: #{person.forecast_id}"
     assignments = ForecastAssignment.where(
       :end_date.gte => beginning_date,
       :start_date.lte => end_date,
@@ -159,7 +147,6 @@ class HarvestService
   # storing functions
 
   def self.store_all_people
-    # all = api.users.all.select { |u| u['is_active'] }
     api.users.all.each do |u|
       f_pers = forecast_person(u['id'])
       next unless f_pers
@@ -170,6 +157,7 @@ class HarvestService
         forecast_id: f_pers.attributes['id'],
         is_contractor: u['is_contractor'],
         is_active: u['is_active'],
+        is_archived: f_pers.attributes['archived'],
         avatar_url: f_pers.attributes['avatar_url'],
         weekly_capacity: (capacity / 3600).round(2),
       )
@@ -180,7 +168,6 @@ class HarvestService
     api.projects.all.each do |p|
       f_proj = forecast_project(p['id'])
       f_proj ||= Hashie::Mash.new(attributes: {})
-      # next unless f_proj
       project = Project.find_or_initialize_by(harvest_id: p['id'])
       project.update(
         name: p['name'],
@@ -206,19 +193,20 @@ class HarvestService
     end
   end
 
-  def self.store_all_logs(start_date = 1.year.ago)
-    Person.all.each do |p|
+  def self.store_all_logs(query = :all, start_date = 1.year.ago)
+    # `query` can be :all or :active
+    Person.send(query).each do |p|
       reports = api.reports.time_by_user(p.harvest_id, start_date, Date.today, billable: true)
       puts "#{reports.count} reports for #{p.name}"
       reports.each do |report|
         log = HarvestLog.find_or_initialize_by(harvest_id: report['id'])
         log.update(
-          person: p,
           spent_at: report['spent_at'],
           notes: report['notes'],
           hours: report['hours'],
           task_id: report['task_id'],
           harvest_project_id: report['project_id'],
+          harvest_user_id: report['user_id'],
         )
       end
     end

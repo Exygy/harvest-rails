@@ -8,4 +8,6 @@ class ForecastAssignment
   field :allocation, type: Integer
   field :forecast_person_id, type: Integer
   field :forecast_project_id, type: Integer
+
+  index({ forecast_id: 1 }, unique: true)
 end
