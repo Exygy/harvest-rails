@@ -21,8 +21,13 @@ class HarvestService
 
   def self.time_by_person_for_period(person, date, period = 'week')
     date = Date.parse(date) unless date.is_a?(Date)
-    beginning_date = date.send("beginning_of_#{period}")
-    end_date = date.send("end_of_#{period}")
+    if period == 'week'
+      beginning_date = date.beginning_of_week(:monday)
+      end_date = date.end_of_week(:monday)
+    else
+      beginning_date = date.send("beginning_of_#{period}")
+      end_date = date.send("end_of_#{period}")
+    end
     end_date = today if end_date > today
     aggregate_data_for_person(person, beginning_date, end_date)
   end
@@ -217,7 +222,9 @@ class HarvestService
   # helpers
 
   def self.today
-    Time.current.to_date
+    day = Time.current.to_date
+    day -= 1.day if Time.current.hour < 10
+    day
   end
 
   def self.num_of_weekdays(beginning_date, end_date)
