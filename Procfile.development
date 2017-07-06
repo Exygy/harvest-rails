@@ -1,4 +1,4 @@
 # rails: bin/rails server -p 3000
+# memcached: memcached
 webpack: bin/webpack-dev-server --hot
-memcached: memcached
 mongod: mongod --config /usr/local/etc/mongod.conf
