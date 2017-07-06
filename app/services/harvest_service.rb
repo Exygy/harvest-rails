@@ -8,7 +8,7 @@ class HarvestService
     )
   end
 
-  def self.periodic_data(date = Date.today, period = 'week')
+  def self.periodic_data(date = today, period = 'week')
     Rails.cache.fetch("periodic_#{period}_data_#{date}", expires_in: 15.minutes) do
       Person.all.collect do |person|
         next unless person.harvest_logs.count > 0
@@ -23,7 +23,7 @@ class HarvestService
     date = Date.parse(date) unless date.is_a?(Date)
     beginning_date = date.send("beginning_of_#{period}")
     end_date = date.send("end_of_#{period}")
-    end_date = Date.today if end_date > Date.today
+    end_date = today if end_date > today
     aggregate_data_for_person(person, beginning_date, end_date)
   end
 
@@ -35,6 +35,7 @@ class HarvestService
     {
       name: person.name,
       is_contractor: person.is_contractor,
+      is_active: person.is_active && !person.is_archived,
       beginning_date: beginning_date,
       end_date: end_date,
       total_forecasted: total_forecasted,
@@ -196,7 +197,7 @@ class HarvestService
   def self.store_all_logs(query = :all, start_date = 1.year.ago)
     # `query` can be :all or :active
     Person.send(query).each do |p|
-      reports = api.reports.time_by_user(p.harvest_id, start_date, Date.today, billable: true)
+      reports = api.reports.time_by_user(p.harvest_id, start_date, today, billable: true)
       puts "#{reports.count} reports for #{p.name}"
       reports.each do |report|
         log = HarvestLog.find_or_initialize_by(harvest_id: report['id'])
@@ -214,6 +215,10 @@ class HarvestService
 
   #########
   # helpers
+
+  def self.today
+    Time.current.to_date
+  end
 
   def self.num_of_weekdays(beginning_date, end_date)
     (beginning_date..end_date).select { |d| (1..5).cover?(d.wday) }.size

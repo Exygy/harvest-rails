@@ -1,16 +1,16 @@
 import moment from 'moment'
+import _ from 'lodash'
 import { connect } from 'react-refetch'
 import PropTypes from 'prop-types'
-import _ from 'lodash'
 import ReactTable from 'react-table'
-// import WeeklyTimesheet from './WeeklyTimesheet'
+import StaffingTableHeader from './StaffingTableHeader'
 
-const StaffingDataTable = (props) => {
+const StaffingDataTable = (props, context) => {
   let { timesheetFetch } = props
   let data = {}
   let date = props.match.params.date
   // let startDate = moment(date).add(week, 'weeks').startOf('isoweek').format('MMMM Do YYYY')
-  let period = props.match.params.period
+  let period = props.match.params.period || 'week'
   let startDate = moment(date).startOf(period).format('MMMM Do YYYY')
   let timePeriod = ''
   switch (period) {
@@ -79,7 +79,7 @@ const StaffingDataTable = (props) => {
       },
       {
         Header: 'Diff %',
-        id: d => 100 * d.diff / (d.total_forecasted || 1),
+        id: d => (100 * d.diff / (d.total_forecasted || 1)),
         accessor: d => (100 * d.diff / (d.total_forecasted || 1)).toFixed(2),
         Footer: (props) => {
           let total_f = _.sumBy(props.data, 'total_forecasted')
@@ -111,14 +111,31 @@ const StaffingDataTable = (props) => {
           </select>
         )
       },
+      {
+        Header: 'Active?',
+        id: 'is_active',
+        accessor: 'is_active',
+        Cell: ({value}) => (value ? 'Yes' : 'No'),
+        filterable: true,
+        filterMethod: (filter, row) => {
+          if (filter.value === 'both') return true
+          if (filter.value === 'true') return row[filter.id] === true
+          if (filter.value === 'false') return row[filter.id] === false
+        },
+        Filter: ({filter, onChange}) => (
+          <select
+            onChange={event => onChange(event.target.value)}
+            style={{width: '100%'}}
+            value={filter ? filter.value : 'both'}
+          >
+            <option value='both'>Both</option>
+            <option value='true'>Yes</option>
+            <option value='false'>No</option>
+          </select>
+        )
+      },
     ]
 
-    // defaultFiltered={[
-    //   {
-    //     id: 'total_hours',
-    //     value: 'gt_0'
-    //   }
-    // ]}
 
     timesheets = (
       <ReactTable
@@ -126,12 +143,23 @@ const StaffingDataTable = (props) => {
         columns={ columns }
         defaultPageSize={ 30 }
         pageSizeOptions={[10, 20, 30, 40, 50]}
+        defaultFiltered={[
+          {
+            id: 'is_active',
+            value: 'true'
+          }
+        ]}
       />
     )
 
     return (
       <div>
-        <h1>{timePeriod}</h1>
+        <StaffingTableHeader
+          title={timePeriod}
+          period={period}
+          startDate={startDate}
+          router={context.router}
+        />
         {timesheets}
       </div>
     )
@@ -148,6 +176,11 @@ const StaffingDataTable = (props) => {
 StaffingDataTable.propTypes = {
   match: PropTypes.object
 }
+
+StaffingDataTable.contextTypes = {
+  router: PropTypes.object
+}
+
 
 export default connect(props => {
   let date = props.match.params.date || moment().format('YYYY-MM-DD')
