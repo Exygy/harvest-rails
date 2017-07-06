@@ -80,7 +80,7 @@ const StaffingDataTable = (props, context) => {
       {
         Header: 'Diff %',
         id: d => (100 * d.diff / (d.total_forecasted || 1)),
-        accessor: d => (100 * d.diff / (d.total_forecasted || 1)).toFixed(2),
+        accessor: d => parseFloat((100 * d.diff / (d.total_forecasted || 1)).toFixed(2)),
         Footer: (props) => {
           let total_f = _.sumBy(props.data, 'total_forecasted')
           let total_h = _.sumBy(props.data, 'total_hours')
