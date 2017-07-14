@@ -4,6 +4,7 @@ import { connect } from 'react-refetch'
 import PropTypes from 'prop-types'
 import ReactTable from 'react-table'
 import StaffingTableHeader from './StaffingTableHeader'
+import WeeklyTimesheet from './WeeklyTimesheet'
 
 const StaffingDataTable = (props, context) => {
   let { timesheetFetch } = props
@@ -15,7 +16,7 @@ const StaffingDataTable = (props, context) => {
   let timePeriod = ''
   switch (period) {
     case 'month':
-      timePeriod = `${moment(date).format('MMMM')}`
+      timePeriod = `${moment(date).format('MMMM Y')}`
       break
     case 'quarter':
       timePeriod = `Q${moment(date).format('Q')}: ${startDate}`
@@ -37,6 +38,19 @@ const StaffingDataTable = (props, context) => {
       {
         Header: 'Name',
         accessor: 'name',
+        filterable: true,
+        filterMethod: (filter, row) => {
+          let projNames = _.map(row._original.timesheets, t => t.project)
+          // console.log(filter.value, row)
+          return _.some(_.map(projNames, n => _.includes(n.toLowerCase(), filter.value.toLowerCase())))
+        },
+        Filter: ({filter, onChange}) => (
+          <input
+            type='text'
+            onChange={event => onChange(event.target.value)}
+            placeholder='Project Name'
+          />
+        ),
         Footer: 'TOTAL'
       },
       {
@@ -149,6 +163,9 @@ const StaffingDataTable = (props, context) => {
             value: 'true'
           }
         ]}
+        SubComponent={(row) =>
+          <WeeklyTimesheet person={row.original} />
+        }
       />
     )
 

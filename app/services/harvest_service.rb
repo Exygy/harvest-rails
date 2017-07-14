@@ -202,20 +202,24 @@ class HarvestService
   def self.store_all_logs(query = :all, start_date = 1.year.ago)
     # `query` can be :all or :active
     Person.send(query).each do |p|
-      reports = api.reports.time_by_user(p.harvest_id, start_date, today, billable: true)
-      puts "#{reports.count} reports for #{p.name}"
-      reports.each do |report|
-        log = HarvestLog.find_or_initialize_by(harvest_id: report['id'])
-        log.update(
-          spent_at: report['spent_at'],
-          notes: report['notes'],
-          hours: report['hours'],
-          task_id: report['task_id'],
-          harvest_project_id: report['project_id'],
-          harvest_user_id: report['user_id'],
-        )
-      end
+      store_logs_for(p, start_date)
     end
+  end
+
+  def self.store_logs_for(person, start_date)
+    reports = api.reports.time_by_user(person.harvest_id, start_date, today, billable: true)
+    reports.each do |report|
+      log = HarvestLog.find_or_initialize_by(harvest_id: report['id'])
+      log.update(
+        spent_at: report['spent_at'],
+        notes: report['notes'],
+        hours: report['hours'],
+        task_id: report['task_id'],
+        harvest_project_id: report['project_id'],
+        harvest_user_id: report['user_id'],
+      )
+    end
+    puts "#{reports.count} reports for #{person.name}"
   end
 
   #########
