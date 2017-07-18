@@ -3,6 +3,7 @@ namespace :harvest do
   task store_everything: :environment do
     HarvestService.store_all_people
     HarvestService.store_all_projects
+    ForecastAssignment.destroy_all
     HarvestService.store_all_assignments
     HarvestService.store_all_logs(:all, 1.year.ago)
   end
@@ -11,11 +12,17 @@ namespace :harvest do
   task store_daily: :environment do
     HarvestService.store_all_people
     HarvestService.store_all_projects
+    # re-grab all ForecastAssignments every day
+    ForecastAssignment.destroy_all
     HarvestService.store_all_assignments
+    # grab all harvest logs from the past couple months just in case any were updated
+    HarvestService.store_all_logs(:active, 2.months.ago)
+    Rails.cache.clear
   end
 
-  desc 'Update all harvest-log data (~15m)'
+  desc 'Update all harvest-log data (once an hour)'
   task store_recent_logs: :environment do
-    HarvestService.store_all_logs(:active, 1.week.ago)
+    # store logs for the past couple weeks
+    HarvestService.store_all_logs(:active, 2.weeks.ago)
   end
 end
