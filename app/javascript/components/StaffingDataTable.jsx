@@ -1,4 +1,4 @@
-import moment from 'moment'
+import moment from 'moment-business-days'
 import _ from 'lodash'
 import { connect } from 'react-refetch'
 import PropTypes from 'prop-types'
@@ -13,6 +13,29 @@ const StaffingDataTable = (props, context) => {
   // let startDate = moment(date).add(week, 'weeks').startOf('isoweek').format('MMMM Do YYYY')
   let period = props.match.params.period || 'week'
   let startDate = moment(date).startOf(period).format('MMMM Do YYYY')
+
+  // Configure moment with holidays
+  var year = moment(date).year()
+  var newYears1 = `01-01-${year}`
+  var newYears2 = `01-02-${year}`
+  var mlkDay = `01-16-${year}`
+  var presidentsDay = `02-20-${year}`
+  var memorialDay = `05-29-${year}`
+  var fourthOfJuly = `07-04-${year}`
+  var laborDay = `09-04-${year}`
+  var columbusDay = `10-09-${year}`
+  var veteransDay = `11-10-${year}`
+  var thanksgiving1 = `11-23-${year}`
+  var thanksgiving2 = `11-24-${year}`
+  var xmas = `12-25-${year}`
+  moment.locale('us', {
+    holidays: [
+      newYears1, newYears2, mlkDay, presidentsDay, memorialDay, fourthOfJuly,
+      laborDay,columbusDay, veteransDay, thanksgiving1, thanksgiving2, xmas
+    ],
+    holidayFormat: 'MM-DD-YYYY'
+  });
+
   let timePeriod = ''
   switch (period) {
     case 'month':
@@ -52,6 +75,52 @@ const StaffingDataTable = (props, context) => {
           />
         ),
         Footer: 'TOTAL'
+      },
+      {
+        Header: props => {
+          return `${_.capitalize(period)}ly Target`
+        },
+        id: 'weekly_capacity',
+        accessor: d => {
+          let dailyCapacity = d.weekly_capacity / 5
+          let periodCapacity = 0
+          switch (period) {
+            case 'month':
+              periodCapacity = dailyCapacity * moment(date).monthBusinessDays().length
+              break
+            case 'quarter':
+              let q = moment(date).quarter()
+              let quarterMonths = [
+                moment().month(3 * q - 3),
+                moment().month(3 * q - 2),
+                moment().month(3 * q - 1)
+              ]
+              let quarterDays = _.reduce(
+                quarterMonths,
+                (sum, month) => {
+                  return sum + month.monthBusinessDays().length
+                },
+                0
+              )
+              periodCapacity = dailyCapacity * quarterDays
+              break
+            case 'year':
+              let yearDays = 0
+              for (var i = 0; i < 12; i++) {
+                yearDays += moment().month(i).monthBusinessDays().length
+              }
+              periodCapacity = dailyCapacity * yearDays
+              break
+            case 'week':
+            default:
+              periodCapacity = d.weekly_capacity
+              break
+          }
+          return periodCapacity
+        },
+        Footer: (props) => {
+          return  _.sumBy(props.data, 'weekly_capacity').toFixed(2)
+        }
       },
       {
         Header: 'Forecast',
@@ -95,6 +164,7 @@ const StaffingDataTable = (props, context) => {
         Header: 'Diff %',
         id: d => (100 * d.diff / (d.total_forecasted || 1)),
         accessor: d => parseFloat((100 * d.diff / (d.total_forecasted || 1)).toFixed(2)),
+        Cell: row => (`${row.value}%`),
         Footer: (props) => {
           let total_f = _.sumBy(props.data, 'total_forecasted')
           let total_h = _.sumBy(props.data, 'total_hours')

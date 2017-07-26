@@ -47,6 +47,7 @@ class HarvestService
       total_hours: total_hours,
       diff: diff,
       timesheets: timesheets,
+      weekly_capacity: person.weekly_capacity
     }
   end
 
@@ -156,7 +157,7 @@ class HarvestService
     api.users.all.each do |u|
       f_pers = forecast_person(u['id'])
       next unless f_pers
-      capacity = f_pers.attributes['weekly_capacity'] || 0
+      capacity = u.weekly_capacity || 0
       person = Person.find_or_initialize_by(harvest_id: u['id'])
       person.update(
         name: "#{u['first_name']} #{u['last_name']}",
@@ -227,7 +228,7 @@ class HarvestService
 
   def self.today
     day = Time.current.to_date
-    day -= 1.day if Time.current.hour < 10
+    day -= 1.day if Time.current.hour < 18
     day
   end
 
