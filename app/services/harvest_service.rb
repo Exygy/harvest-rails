@@ -28,15 +28,15 @@ class HarvestService
       beginning_date = date.send("beginning_of_#{period}")
       end_date = date.send("end_of_#{period}")
     end
-    end_date = today if end_date > today
     aggregate_data_for_person(person, beginning_date, end_date)
   end
 
   def self.aggregate_data_for_person(person, beginning_date, end_date)
     timesheets = timesheets_by_person(person, beginning_date, end_date)
     total_forecasted = timesheets.collect(&:forecasted).sum.round(2)
+    total_forecasted_to_date = timesheets.collect(&:forecasted_to_date).sum.round(2)
     total_hours = timesheets.collect(&:total).sum.round(2)
-    diff = (total_hours - total_forecasted).round(2)
+    diff = (total_hours - total_forecasted_to_date).round(2)
     {
       name: person.name,
       is_contractor: person.is_contractor,
@@ -44,6 +44,7 @@ class HarvestService
       beginning_date: beginning_date,
       end_date: end_date,
       total_forecasted: total_forecasted,
+      total_forecasted_to_date: total_forecasted_to_date,
       total_hours: total_hours,
       diff: diff,
       timesheets: timesheets,
@@ -66,8 +67,14 @@ class HarvestService
         project_id: project.forecast_id,
         total: 0,
         forecasted: assigned_proj.forecasted,
+        forecasted_to_date: assigned_proj.forecasted_to_date
       )
       logged_hours << logged
+    end
+
+    logged_hours.each do |logged_proj|
+      assigned_proj = assigned_hours.select{ |x| x.project_id == logged_proj[:project_id] }
+      logged_proj.forecasted_to_date = assigned_proj.empty? ? 0 : assigned_proj.first.forecasted_to_date
     end
 
     logged_hours
@@ -85,6 +92,7 @@ class HarvestService
       # puts "getting forecast project #{project.name}; #{id}..."
       assigned_proj_hours = assigned_hours.find { |x| x[:project_id] == project.forecast_id }
       forecasted = assigned_proj_hours ? assigned_proj_hours.forecasted : 0
+
       Hashie::Mash.new(
         project: project.name,
         project_id: project.forecast_id,
@@ -112,9 +120,22 @@ class HarvestService
         business_days = num_of_weekdays(period_start, period_end)
         hrs * business_days
       end.compact.sum
+
+      forecasted_to_date = assns.collect do |assn|
+        next unless assn.allocation
+        project = Project.where(forecast_id: forecast_id).first
+        next unless project && project.is_billable
+        hrs = assn.allocation / 3600.0
+        period_start = [assn.start_date, beginning_date].max
+        period_end = [assn.end_date, end_date, today].min
+        business_days = num_of_weekdays(period_start, period_end)
+        hrs * business_days
+      end.compact.sum
+
       Hashie::Mash.new(
         project_id: forecast_id,
         forecasted: forecasted,
+        forecasted_to_date: forecasted_to_date || 0
       )
     end
   end

@@ -56,7 +56,6 @@ const StaffingDataTable = (props, context) => {
   let timesheets = []
   if (timesheetFetch.fulfilled) {
     data = timesheetFetch.value.data
-
     var columns = [
       {
         Header: 'Name',
@@ -64,7 +63,6 @@ const StaffingDataTable = (props, context) => {
         filterable: true,
         filterMethod: (filter, row) => {
           let projNames = _.map(row._original.timesheets, t => t.project)
-          // console.log(filter.value, row)
           return _.some(_.map(projNames, n => _.includes(n.toLowerCase(), filter.value.toLowerCase())))
         },
         Filter: ({filter, onChange}) => (
@@ -123,14 +121,23 @@ const StaffingDataTable = (props, context) => {
         }
       },
       {
-        Header: 'Forecast',
+        Header: props => {
+          return `${_.capitalize(period)}ly Forecast`
+        },
         accessor: 'total_forecasted',
         Footer: (props) => {
           return  _.sumBy(props.data, 'total_forecasted').toFixed(2)
         }
       },
       {
-        Header: 'Actual',
+        Header: 'Forecast To Date',
+        accessor: 'total_forecasted_to_date',
+        Footer: (props) => {
+          return  _.sumBy(props.data, 'total_forecasted_to_date').toFixed(2)
+        }
+      },
+      {
+        Header: 'Actual To Date',
         accessor: 'total_hours',
         filterable: true,
         filterMethod: (filter, row) => {
@@ -162,11 +169,11 @@ const StaffingDataTable = (props, context) => {
       },
       {
         Header: 'Diff %',
-        id: d => (100 * d.diff / (d.total_forecasted || 1)),
-        accessor: d => parseFloat((100 * d.diff / (d.total_forecasted || 1)).toFixed(2)),
+        id: d => (100 * d.diff / (d.total_forecasted_to_date || 1)),
+        accessor: d => parseFloat((100 * d.diff / (d.total_forecasted_to_date || 1)).toFixed(2)),
         Cell: row => (`${row.value}%`),
         Footer: (props) => {
-          let total_f = _.sumBy(props.data, 'total_forecasted')
+          let total_f = _.sumBy(props.data, 'total_forecasted_to_date')
           let total_h = _.sumBy(props.data, 'total_hours')
           let total_d = total_h - total_f
           return (100 * total_d / total_f).toFixed(2)
