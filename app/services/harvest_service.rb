@@ -230,6 +230,9 @@ class HarvestService
 
   def self.store_logs_for(person, start_date)
     reports = api.reports.time_by_user(person.harvest_id, start_date, today, billable: true)
+    # special case to handle the Exygy.com Redesign project, which is technically a non-billable
+    # internal project, but which we want to track hours for as if it was a billable project
+    reports += api.reports.time_by_user(person.harvest_id, start_date, today, billable: false, project_id: 12401020)
     reports.each do |report|
       log = HarvestLog.find_or_initialize_by(harvest_id: report['id'])
       log.update(
