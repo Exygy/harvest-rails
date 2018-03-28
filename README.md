@@ -1,13 +1,13 @@
 # README
 
-## Local Setup Instructions:
+## Local Setup Instructions
 
 - Have Node version `6.11.x` installed.
 - Run `yarn install`.
 - Ensure that you can run the webpack server: `bin/webpack-dev-server --hot`.
 - Install MongoDB and ensure that you can run the MongoDB server: `mongod --config /usr/local/etc/mongod.conf`.
 
-## Local Run Instructions:
+## Local Run Instructions
 
 - Start the webpack server: `bin/webpack-dev-server --hot`.
 - Start the mongodb server: `mongod --config /usr/local/etc/mongod.conf`.
