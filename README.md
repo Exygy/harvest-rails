@@ -1,24 +1,19 @@
 # README
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+## Local Setup Instructions:
 
-Things you may want to cover:
+- Have Node version `6.11.x` installed.
+- Run `yarn install`.
+- Ensure that you can run the webpack server: `bin/webpack-dev-server --hot`.
+- Install MongoDB and ensure that you can run the MongoDB server: `mongod --config /usr/local/etc/mongod.conf`.
 
-* Ruby version
+## Local Run Instructions:
 
-* System dependencies
+- Start the webpack server: `bin/webpack-dev-server --hot`.
+- Start the mongodb server: `mongod --config /usr/local/etc/mongod.conf`.
+- Start the Rails server: `rails s`.
+- Go to `localhost:3000` to access the app.
 
-* Configuration
+## Production Hosting Details
 
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+The production app is currently hosted on Heroku. The app name is `harvest-rails`. The app is accessible at the URL https://staffing.exygy.com. The app is currently set to use basic HTTP authentication in production. You can find the username and password in LastPass under the name "Exygy Staffing App". The username and password are set via Heroku environment variables.
