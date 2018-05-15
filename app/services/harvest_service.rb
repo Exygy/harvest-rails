@@ -176,19 +176,39 @@ class HarvestService
 
   def self.store_all_people
     api.users.all.each do |u|
+      # check to see if we can find a user in Forecast that
+      # corresponds to this Harvest user ID
       f_pers = forecast_person(u['id'])
-      next unless f_pers
-      capacity = u.weekly_capacity || 0
-      person = Person.find_or_initialize_by(harvest_id: u['id'])
-      person.update(
-        name: "#{u['first_name']} #{u['last_name']}",
-        forecast_id: f_pers.attributes['id'],
-        is_contractor: u['is_contractor'],
-        is_active: u['is_active'],
-        is_archived: f_pers.attributes['archived'],
-        avatar_url: f_pers.attributes['avatar_url'],
-        weekly_capacity: (capacity / 3600).round(2),
-      )
+
+      if f_pers
+        capacity = u.weekly_capacity || 0
+        person = Person.find_or_initialize_by(harvest_id: u['id'])
+        p "#{u['first_name']} #{u['last_name']}"
+        p u['id']
+        p "rails id #{person.id}"
+        person.update(
+          name: "#{u['first_name']} #{u['last_name']}",
+          forecast_id: f_pers.attributes['id'],
+          is_contractor: u['is_contractor'],
+          is_active: u['is_active'],
+          is_archived: f_pers.attributes['archived'],
+          avatar_url: f_pers.attributes['avatar_url'],
+          weekly_capacity: (capacity / 3600).round(2),
+        )
+      else
+        # If no user is found in Forecast corresponding to this Harvest ID,
+        # we will consider any user with this Harvest ID to be inactive and
+        # archived. Check if a user with this Harvest ID exists locally, and
+        # if so make sure the user is marked as inactive and archived so that
+        # they do not get included in the hours reports.
+        person = Person.where(harvest_id: u['id']).first
+        if person && (person.is_active || !person.is_archived)
+          person.update(
+            is_active: false,
+            is_archived: true,
+          )
+        end
+      end
     end
   end
 
