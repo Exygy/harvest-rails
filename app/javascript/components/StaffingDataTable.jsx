@@ -161,7 +161,7 @@ const StaffingDataTable = (props, context) => {
         },
       },
       {
-        Header: 'Difference',
+        Header: 'Diff Forecast to Actual',
         accessor: 'diff',
         Footer: (props) => {
           return  _.sumBy(props.data, 'diff').toFixed(2)
