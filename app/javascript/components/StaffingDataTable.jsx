@@ -53,9 +53,55 @@ const StaffingDataTable = (props, context) => {
       timePeriod = `Week ${moment(date).format('W')}: ${startDate}`
       break
   }
+
+  const setPeriodData  = (data) => {
+    data.forEach(d => {
+      let dailyCapacity = d.weekly_capacity / 5
+      let periodCapacity = 0
+      switch (period) {
+        case 'month':
+          periodCapacity = dailyCapacity * moment(date).monthBusinessDays().length
+          break
+        case 'quarter':
+          let q = moment(date).quarter()
+          let quarterMonths = [
+            moment().month(3 * q - 3),
+            moment().month(3 * q - 2),
+            moment().month(3 * q - 1)
+          ]
+          let quarterDays = _.reduce(
+            quarterMonths,
+            (sum, month) => {
+              return sum + month.monthBusinessDays().length
+            },
+            0
+          )
+          periodCapacity = dailyCapacity * quarterDays
+          break
+        case 'year':
+          let yearDays = 0
+          for (var i = 0; i < 12; i++) {
+            yearDays += moment().month(i).monthBusinessDays().length
+          }
+          periodCapacity = dailyCapacity * yearDays
+          break
+        case 'week':
+        default:
+          periodCapacity = d.weekly_capacity
+          break
+      }
+      d.period_capacity = Math.round(periodCapacity * 100) / 100
+
+      d.diff_target_forecast = Math.round((d.total_forecasted - d.period_capacity) * 100) / 100
+    })
+  }
+
   let timesheets = []
   if (timesheetFetch.fulfilled) {
     data = timesheetFetch.value.data
+
+    setPeriodData(data)
+    console.log(data)
     var columns = [
       {
         Header: 'Name',
@@ -78,46 +124,9 @@ const StaffingDataTable = (props, context) => {
         Header: props => {
           return `${_.capitalize(period)}ly Target`
         },
-        id: 'weekly_capacity',
-        accessor: d => {
-          let dailyCapacity = d.weekly_capacity / 5
-          let periodCapacity = 0
-          switch (period) {
-            case 'month':
-              periodCapacity = dailyCapacity * moment(date).monthBusinessDays().length
-              break
-            case 'quarter':
-              let q = moment(date).quarter()
-              let quarterMonths = [
-                moment().month(3 * q - 3),
-                moment().month(3 * q - 2),
-                moment().month(3 * q - 1)
-              ]
-              let quarterDays = _.reduce(
-                quarterMonths,
-                (sum, month) => {
-                  return sum + month.monthBusinessDays().length
-                },
-                0
-              )
-              periodCapacity = dailyCapacity * quarterDays
-              break
-            case 'year':
-              let yearDays = 0
-              for (var i = 0; i < 12; i++) {
-                yearDays += moment().month(i).monthBusinessDays().length
-              }
-              periodCapacity = dailyCapacity * yearDays
-              break
-            case 'week':
-            default:
-              periodCapacity = d.weekly_capacity
-              break
-          }
-          return periodCapacity
-        },
+        accessor: 'period_capacity',
         Footer: (props) => {
-          return  _.sumBy(props.data, 'weekly_capacity').toFixed(2)
+          return  _.sumBy(props.data, 'period_capacity').toFixed(2)
         }
       },
       {
@@ -161,16 +170,23 @@ const StaffingDataTable = (props, context) => {
         },
       },
       {
-        Header: 'Diff Forecast to Actual',
-        accessor: 'diff',
+        Header: 'Diff Target to Forecast',
+        accessor: 'diff_target_forecast',
         Footer: (props) => {
-          return  _.sumBy(props.data, 'diff').toFixed(2)
+          return Math.round(_.sumBy(props.data, 'diff_target_forecast') * 100) / 100
         }
       },
       {
-        Header: 'Diff %',
-        id: d => (100 * d.diff / (d.total_forecasted_to_date || 1)),
-        accessor: d => parseFloat((100 * d.diff / (d.total_forecasted_to_date || 1)).toFixed(2)),
+        Header: 'Diff Forecast to Actual',
+        accessor: 'diff_forecast_actual',
+        Footer: (props) => {
+          return Math.round(_.sumBy(props.data, 'diff_forecast_actual') * 100) / 100
+        }
+      },
+      {
+        Header: 'Diff Forecast to Actual %',
+        id: d => (100 * d.diff_forecast_actual / (d.total_forecasted_to_date || 1)),
+        accessor: d => parseFloat((100 * d.diff_forecast_actual / (d.total_forecasted_to_date || 1)).toFixed(2)),
         Cell: row => (`${row.value}%`),
         Footer: (props) => {
           let total_f = _.sumBy(props.data, 'total_forecasted_to_date')
@@ -227,7 +243,6 @@ const StaffingDataTable = (props, context) => {
       },
     ]
 
-
     timesheets = (
       <ReactTable
         data={ data }
@@ -274,7 +289,6 @@ StaffingDataTable.propTypes = {
 StaffingDataTable.contextTypes = {
   router: PropTypes.object
 }
-
 
 export default connect(props => {
   let date = props.match.params.date || moment().format('YYYY-MM-DD')

@@ -36,7 +36,7 @@ class HarvestService
     total_forecasted = timesheets.collect(&:forecasted).sum.round(2)
     total_forecasted_to_date = timesheets.collect(&:forecasted_to_date).sum.round(2)
     total_hours = timesheets.collect(&:total).sum.round(2)
-    diff = (total_hours - total_forecasted_to_date).round(2)
+    diff_forecast_actual = (total_hours - total_forecasted_to_date).round(2)
     {
       name: person.name,
       is_contractor: person.is_contractor,
@@ -46,7 +46,7 @@ class HarvestService
       total_forecasted: total_forecasted,
       total_forecasted_to_date: total_forecasted_to_date,
       total_hours: total_hours,
-      diff: diff,
+      diff_forecast_actual: diff_forecast_actual,
       timesheets: timesheets,
       weekly_capacity: person.weekly_capacity
     }

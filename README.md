@@ -7,7 +7,7 @@
 - Ensure that you can run the webpack server: `bin/webpack-dev-server --hot`.
 - Install MongoDB and ensure that you can run the MongoDB server: `mongod --config /usr/local/etc/mongod.conf`.
 
-## Local Run Instructions
+## Run Instructions
 
 - Start the webpack server: `bin/webpack-dev-server --hot`.
 - Start the mongodb server: `mongod --config /usr/local/etc/mongod.conf`.
