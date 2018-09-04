@@ -3,6 +3,7 @@ namespace :harvest do
   task store_everything: :environment do
     HarvestService.store_all_people
     HarvestService.store_all_projects
+    ForecastService.store_time_off_project
     ForecastAssignment.destroy_all
     HarvestService.store_all_assignments
     HarvestService.store_all_logs(:all, 1.year.ago)

@@ -1,8 +1,8 @@
 GIT
   remote: https://github.com/Exygy/forecast.git
-  revision: 25fbd14cf5d4b4336028cddad36cca88e1972d15
+  revision: 56af181abe8461215a0b92cb545bb8dfbe7be349
   specs:
-    forecast (0.0.1)
+    forecast (0.0.2)
       activesupport (~> 5.0)
       addressable (~> 2.5)
       dotenv (~> 2.1)
@@ -80,7 +80,7 @@ GEM
     concurrent-ruby (1.0.5)
     dalli (2.7.6)
     debug_inspector (0.0.3)
-    domain_name (0.5.20170404)
+    domain_name (0.5.20180417)
       unf (>= 0.0.5, < 1.0.0)
     dotenv (2.2.1)
     dotenv-rails (2.2.1)
@@ -88,12 +88,12 @@ GEM
       railties (>= 3.2, < 5.2)
     erubi (1.6.1)
     execjs (2.7.0)
-    faraday (0.12.1)
+    faraday (0.15.2)
       multipart-post (>= 1.2, < 3)
     faraday-cookie_jar (0.0.6)
       faraday (>= 0.7.4)
       http-cookie (~> 1.0.0)
-    faraday_middleware (0.11.0.1)
+    faraday_middleware (0.12.2)
       faraday (>= 0.7.4, < 1.0)
     ffi (1.9.18)
     foreman (0.84.0)
@@ -230,7 +230,7 @@ GEM
       execjs (>= 0.3.0, < 3)
     unf (0.1.4)
       unf_ext
-    unf_ext (0.0.7.4)
+    unf_ext (0.0.7.5)
     unicode-display_width (1.2.1)
     web-console (3.5.1)
       actionview (>= 5.0)

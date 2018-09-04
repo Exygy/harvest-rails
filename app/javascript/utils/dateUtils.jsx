@@ -51,6 +51,8 @@ export const getPeriodTitleAndStart = (date, period) => {
   return {periodTitle: periodTitle, periodStart: periodStart}
 }
 
+// TODO: This function does staffing-table-specific things. Move it
+// closer to the staffing table component.
 export const setPeriodData = (data, date, period) => {
   let configuredMoment = configureMoment()
   let momentDate = configuredMoment(date)
@@ -90,8 +92,8 @@ export const setPeriodData = (data, date, period) => {
         periodCapacity = d.weekly_capacity
         break
     }
-    d.period_capacity = Math.round(periodCapacity * 100) / 100
-
+    periodCapacity = Math.round(periodCapacity * 100) / 100
+    d.period_capacity = Math.max(periodCapacity - d.time_off, 0)
     d.diff_target_forecast = Math.round((d.total_forecasted - d.period_capacity) * 100) / 100
   })
 }

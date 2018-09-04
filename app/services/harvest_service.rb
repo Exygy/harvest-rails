@@ -37,6 +37,8 @@ class HarvestService
     total_forecasted_to_date = timesheets.collect(&:forecasted_to_date).sum.round(2)
     total_hours = timesheets.collect(&:total).sum.round(2)
     diff_forecast_actual = (total_hours - total_forecasted_to_date).round(2)
+    time_off = time_off_by_person(person, beginning_date, end_date)
+
     {
       name: person.name,
       is_contractor: person.is_contractor,
@@ -47,6 +49,7 @@ class HarvestService
       total_forecasted_to_date: total_forecasted_to_date,
       total_hours: total_hours,
       diff_forecast_actual: diff_forecast_actual,
+      time_off: time_off,
       timesheets: timesheets,
       weekly_capacity: person.weekly_capacity
     }
@@ -78,6 +81,31 @@ class HarvestService
     end
 
     logged_hours
+  end
+
+  def self.time_off_by_person(person, beginning_date, end_date)
+    time_off_assignments = ForecastAssignment.where(
+      :end_date.gte => beginning_date,
+      :start_date.lte => end_date,
+      forecast_person_id: person.forecast_id,
+      forecast_project_id: ForecastService::TIME_OFF_PROJECT_ID,
+    ).entries
+
+    time_off_range = 0
+    time_off_to_date = 0
+    time_off_assignments.map do |assn|
+      # If a time off assignment has no allocation, we currently assume
+      # that means it represents a full day, so we set its allocation
+      # to 8 hrs (in seconds).
+      assn.allocation = 28800 unless assn.allocation
+      hrs = assn.allocation / 3600.0
+      period_start = [assn.start_date, beginning_date].max
+
+      # sum time off for given date range
+      period_end = [assn.end_date, end_date].min
+      business_days = num_of_weekdays(period_start, period_end)
+      hrs * business_days
+    end.compact.sum.round(2)
   end
 
   def self.collect_logged_hours(person, assigned_hours, beginning_date, end_date)
