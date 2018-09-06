@@ -11,13 +11,19 @@ namespace :harvest do
 
   desc 'Update all non-harvest-log data (daily)'
   task store_daily: :environment do
+    puts "storing all people..."
     HarvestService.store_all_people
+    puts "storing all projects..."
     HarvestService.store_all_projects
     # re-grab all ForecastAssignments every day
+    puts "deleting all assignments..."
     ForecastAssignment.destroy_all
+    puts "storing all assignments..."
     HarvestService.store_all_assignments
     # grab all harvest logs from the past couple months just in case any were updated
+    puts "storing all logs from past two months..."
     HarvestService.store_all_logs(:active, 2.months.ago)
+    puts "clearing cache..."
     Rails.cache.clear
   end
 

@@ -27,45 +27,43 @@ export const configureMoment = date => {
 
 export const getPeriodTitleAndStart = (date, period) => {
   let configuredMoment = configureMoment(date)
-  let momentDate = configuredMoment(date)
-  let periodStart = configuredMoment().startOf(period).format('MMMM Do YYYY')
+  let periodStart = configuredMoment(date).startOf(period).format('MMMM Do YYYY')
   let periodTitle
 
   switch (period) {
     case 'month':
-      periodTitle = `${momentDate.format('MMMM Y')}`
+      periodTitle = `${configuredMoment(date).format('MMMM Y')}`
       break
     case 'quarter':
-      periodTitle = `Q${momentDate.format('Q')}: ${periodStart}`
+      periodTitle = `Q${configuredMoment(date).format('Q')}: ${periodStart}`
       break
     case 'year':
-      periodTitle = `${momentDate.format('Y')} to date`
+      periodTitle = `${configuredMoment(date).format('Y')} to date`
       break
     case 'week':
     default:
-      periodStart = momentDate.startOf('isoweek').format('MMMM Do YYYY')
-      periodTitle = `Week ${momentDate.format('W')}: ${periodStart}`
+      periodStart = configuredMoment(date).startOf('isoweek').format('MMMM Do YYYY')
+      periodTitle = `Week ${configuredMoment(date).format('W')}: ${periodStart}`
       break
   }
 
-  return {periodTitle: periodTitle, periodStart: periodStart}
+  return { periodTitle, periodStart }
 }
 
 // TODO: This function does staffing-table-specific things. Move it
 // closer to the staffing table component.
 export const setPeriodData = (data, date, period) => {
   let configuredMoment = configureMoment()
-  let momentDate = configuredMoment(date)
 
   data.forEach(d => {
     let dailyCapacity = d.weekly_capacity / 5
     let periodCapacity = 0
     switch (period) {
       case 'month':
-        periodCapacity = dailyCapacity * momentDate.monthBusinessDays().length
+        periodCapacity = dailyCapacity * configuredMoment(date).monthBusinessDays().length
         break
       case 'quarter':
-        let q = momentDate.quarter()
+        let q = configuredMoment(date).quarter()
         let quarterMonths = [
           configuredMoment().month(3 * q - 3),
           configuredMoment().month(3 * q - 2),

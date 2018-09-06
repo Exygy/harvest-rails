@@ -211,9 +211,6 @@ class HarvestService
       if f_pers
         capacity = u.weekly_capacity || 0
         person = Person.find_or_initialize_by(harvest_id: u['id'])
-        p "#{u['first_name']} #{u['last_name']}"
-        p u['id']
-        p "rails id #{person.id}"
         person.update(
           name: "#{u['first_name']} #{u['last_name']}",
           forecast_id: f_pers.attributes['id'],
