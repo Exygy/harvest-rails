@@ -2,8 +2,10 @@
 
 ## Local Setup Instructions
 
-- Have Node version `6.11.x` installed.
+- Have Node version `8.10.x` installed.
 - Run `yarn install`.
+- Have Ruby version `2.3.3` and Bundler installed.
+- Run `bundle install`.
 - Ensure that you can run the webpack server: `bin/webpack-dev-server --hot`.
 - Install MongoDB and ensure that you can run the MongoDB server: `mongod --config /usr/local/etc/mongod.conf`.
 

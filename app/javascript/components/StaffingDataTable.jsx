@@ -39,18 +39,14 @@ const StaffingDataTable = (props, context) => {
         Footer: 'TOTAL'
       },
       {
-        Header: props => {
-          return `${capitalize(period)}ly Target`
-        },
+        Header: 'Target',
         accessor: 'period_capacity',
         Footer: (props) => {
           return  sumBy(props.data, 'period_capacity').toFixed(2)
         }
       },
       {
-        Header: props => {
-          return `${capitalize(period)}ly Forecast`
-        },
+        Header: 'Forecast',
         accessor: 'total_forecasted',
         Footer: (props) => {
           return  sumBy(props.data, 'total_forecasted').toFixed(2)
@@ -88,21 +84,28 @@ const StaffingDataTable = (props, context) => {
         },
       },
       {
-        Header: 'Diff Target to Forecast',
+        Header: 'Actual - Target',
+        accessor: 'diff_target_actual',
+        Footer: (props) => {
+          return Math.round(sumBy(props.data, 'diff_target_forecast') * 100) / 100
+        }
+      },
+      {
+        Header: 'Forecast - Target',
         accessor: 'diff_target_forecast',
         Footer: (props) => {
           return Math.round(sumBy(props.data, 'diff_target_forecast') * 100) / 100
         }
       },
       {
-        Header: 'Diff Forecast to Actual',
+        Header: 'Actual - Forecast',
         accessor: 'diff_forecast_actual',
         Footer: (props) => {
           return Math.round(sumBy(props.data, 'diff_forecast_actual') * 100) / 100
         }
       },
       {
-        Header: 'Diff Forecast to Actual %',
+        Header: 'Actual - Forecast %',
         id: d => (100 * d.diff_forecast_actual / (d.total_forecasted_to_date || 1)),
         accessor: d => parseFloat((100 * d.diff_forecast_actual / (d.total_forecasted_to_date || 1)).toFixed(2)),
         Cell: row => (`${row.value}%`),

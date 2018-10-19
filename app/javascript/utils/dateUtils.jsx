@@ -92,6 +92,7 @@ export const setPeriodData = (data, date, period) => {
     }
     periodCapacity = Math.round(periodCapacity * 100) / 100
     d.period_capacity = Math.max(periodCapacity - d.time_off, 0)
+    d.diff_target_actual = Math.round((d.total_hours - d.period_capacity) * 100) / 100
     d.diff_target_forecast = Math.round((d.total_forecasted - d.period_capacity) * 100) / 100
   })
 }
