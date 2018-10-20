@@ -13,3 +13,26 @@
  *= require_tree .
  *= require_self
  */
+
+/* Staffing Table styles */
+
+/*
+ * begin role column cell hover expansion styles
+ *
+ * The following two style rules are only necessary to
+ * provide the expansion effect on hover for the role
+ * column cells. If that effect is no longer desired,
+ * just remove these two styles.
+ */
+.ReactTable .rt-tbody .rt-tr {
+    height: 35px;
+}
+
+.ReactTable .rt-tbody .rt-td.roles:hover {
+    background-color: #fff;
+    border: 1px solid rgba(0,0,0,0.15);
+    height: fit-content;
+    position: relative;
+    white-space: normal;
+}
+/* end role column cell hover expansion styles */

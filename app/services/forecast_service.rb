@@ -20,4 +20,28 @@ class ForecastService
       )
     end
   end
+
+  def self.all_forecast_projects
+    Rails.cache.fetch 'all_forecast_projects' do
+      Forecast::Project.all
+    end
+  end
+
+  def self.forecast_project(harvest_id)
+    all_forecast_projects.find do |p|
+      p.attributes['harvest_id'] == harvest_id
+    end
+  end
+
+  def self.all_forecast_people
+    Rails.cache.fetch 'all_forecast_people' do
+      Forecast::Person.all
+    end
+  end
+
+  def self.forecast_person(harvest_id)
+    all_forecast_people.find do |p|
+      p.attributes['harvest_user_id'] == harvest_id
+    end
+  end
 end

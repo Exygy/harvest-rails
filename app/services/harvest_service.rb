@@ -43,6 +43,7 @@ class HarvestService
       name: person.name,
       is_contractor: person.is_contractor,
       is_active: person.is_active && !person.is_archived,
+      roles: person.roles,
       beginning_date: beginning_date,
       end_date: end_date,
       total_forecasted: total_forecasted,
@@ -178,26 +179,6 @@ class HarvestService
     all_harvest_tasks.find { |t| t['id'] == h_id }
   end
 
-  def self.all_forecast_projects
-    Rails.cache.fetch 'all_forecast_projects' do
-      Forecast::Project.all
-    end
-  end
-
-  def self.forecast_project(h_id)
-    all_forecast_projects.find { |p| p.attributes['harvest_id'] == h_id }
-  end
-
-  def self.all_forecast_people
-    Rails.cache.fetch 'all_forecast_people' do
-      Forecast::Person.all
-    end
-  end
-
-  def self.forecast_person(h_id)
-    all_forecast_people.find { |p| p.attributes['harvest_user_id'] == h_id }
-  end
-
 
   ###################
   # storing functions
@@ -206,18 +187,19 @@ class HarvestService
     api.users.all.each do |u|
       # check to see if we can find a user in Forecast that
       # corresponds to this Harvest user ID
-      f_pers = forecast_person(u['id'])
+      f_pers = ForecastService.forecast_person(u['id'])
 
       if f_pers
         capacity = u.weekly_capacity || 0
         person = Person.find_or_initialize_by(harvest_id: u['id'])
         person.update(
+          avatar_url: f_pers.avatar_url,
           name: "#{u['first_name']} #{u['last_name']}",
-          forecast_id: f_pers.attributes['id'],
+          forecast_id: f_pers.id,
           is_contractor: u['is_contractor'],
           is_active: u['is_active'],
-          is_archived: f_pers.attributes['archived'],
-          avatar_url: f_pers.attributes['avatar_url'],
+          is_archived: f_pers.archived,
+          roles: f_pers.roles,
           weekly_capacity: (capacity / 3600).round(2),
         )
       else
@@ -239,7 +221,7 @@ class HarvestService
 
   def self.store_all_projects
     api.projects.all.each do |p|
-      f_proj = forecast_project(p['id'])
+      f_proj = ForecastService.forecast_project(p['id'])
       f_proj ||= Hashie::Mash.new(attributes: {})
       project = Project.find_or_initialize_by(harvest_id: p['id'])
       project.update(

@@ -5,6 +5,7 @@ import ReactTable from 'react-table'
 import StaffingTableHeader from './StaffingTableHeader'
 import WeeklyTimesheet from './WeeklyTimesheet'
 import { getPeriodTitleAndStart, setPeriodData, configureMoment } from '../utils/dateUtils'
+import { ROLES } from '../utils/constants'
 
 const StaffingDataTable = (props, context) => {
   let { timesheetFetch } = props
@@ -114,6 +115,33 @@ const StaffingDataTable = (props, context) => {
           let total_h = sumBy(props.data, 'total_hours')
           let total_d = total_h - total_f
           return (100 * total_d / total_f).toFixed(2)
+        }
+      },
+      {
+        Header: 'Roles',
+        id: 'roles',
+        accessor: 'roles',
+        className: 'roles',
+        Cell: ({value}) => (value.join(', ')),
+        filterable: true,
+        filterMethod: (filter, row) => {
+          if (filter.value === 'Any') return true
+          return row.roles.includes(filter.value)
+        },
+        Filter: ({filter, onChange}) => {
+          const options = ROLES.map((role, i) =>
+            <option value={role} key={i}>{role}</option>
+          )
+
+          return (
+            <select
+              onChange={event => onChange(event.target.value)}
+              style={{width: '100%'}}
+              value={filter ? filter.value : 'Any'}
+            >
+              {options}
+            </select>
+          )
         }
       },
       {
