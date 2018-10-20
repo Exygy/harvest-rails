@@ -10,41 +10,46 @@ class HarvestService
 
   def self.periodic_data(date = today, period = 'week')
     Rails.cache.fetch("periodic_#{period}_data_#{date}", expires_in: 15.minutes) do
-      Person.all.collect do |person|
+      begin_date, end_date = calculate_date_range(date, period)
+
+      timesheets = Person.all.collect do |person|
         next unless person.harvest_logs.count > 0
-        time_by_person_for_period(person, date, period)
+        aggregate_data_for_person(person, begin_date, end_date)
+        # time_by_person_for_period(person, date, period)
       end.compact
+
+      assign_company_wide_time_off(timesheets, begin_date, end_date)
     end
   end
 
   ########
 
-  def self.time_by_person_for_period(person, date, period = 'week')
+  def self.calculate_date_range(date, period)
     date = Date.parse(date) unless date.is_a?(Date)
     if period == 'week'
-      beginning_date = date.beginning_of_week(:monday)
+      begin_date = date.beginning_of_week(:monday)
       end_date = date.end_of_week(:monday)
     else
-      beginning_date = date.send("beginning_of_#{period}")
+      begin_date = date.send("beginning_of_#{period}")
       end_date = date.send("end_of_#{period}")
     end
-    aggregate_data_for_person(person, beginning_date, end_date)
+    [begin_date, end_date]
   end
 
-  def self.aggregate_data_for_person(person, beginning_date, end_date)
-    timesheets = timesheets_by_person(person, beginning_date, end_date)
+  def self.aggregate_data_for_person(person, begin_date, end_date)
+    timesheets = timesheets_by_person(person, begin_date, end_date)
     total_forecasted = timesheets.collect(&:forecasted).sum.round(2)
     total_forecasted_to_date = timesheets.collect(&:forecasted_to_date).sum.round(2)
     total_hours = timesheets.collect(&:total).sum.round(2)
     diff_forecast_actual = (total_hours - total_forecasted_to_date).round(2)
-    time_off = time_off_by_person(person, beginning_date, end_date)
+    time_off = time_off_by_person(person, begin_date, end_date)
 
     {
       name: person.name,
       is_contractor: person.is_contractor,
       is_active: person.is_active && !person.is_archived,
       roles: person.roles,
-      beginning_date: beginning_date,
+      begin_date: begin_date,
       end_date: end_date,
       total_forecasted: total_forecasted,
       total_forecasted_to_date: total_forecasted_to_date,
@@ -56,10 +61,10 @@ class HarvestService
     }
   end
 
-  def self.timesheets_by_person(person, beginning_date, end_date)
-    puts "loading harvest logs: #{beginning_date} - #{end_date} for #{person.name}..."
-    assigned_hours = forecast_assignments_for_range(person, beginning_date, end_date)
-    logged_hours = collect_logged_hours(person, assigned_hours, beginning_date, end_date)
+  def self.timesheets_by_person(person, begin_date, end_date)
+    puts "loading harvest logs: #{begin_date} - #{end_date} for #{person.name}..."
+    assigned_hours = forecast_assignments_for_range(person, begin_date, end_date)
+    logged_hours = collect_logged_hours(person, assigned_hours, begin_date, end_date)
 
     # also collect forecasted projects where the person didn't log any time in harvest
     assigned_hours.each do |assigned_proj|
@@ -84,9 +89,9 @@ class HarvestService
     logged_hours
   end
 
-  def self.time_off_by_person(person, beginning_date, end_date)
+  def self.time_off_by_person(person, begin_date, end_date)
     time_off_assignments = ForecastAssignment.where(
-      :end_date.gte => beginning_date,
+      :end_date.gte => begin_date,
       :start_date.lte => end_date,
       forecast_person_id: person.forecast_id,
       forecast_project_id: ForecastService::TIME_OFF_PROJECT_ID,
@@ -100,7 +105,7 @@ class HarvestService
       # to 8 hrs (in seconds).
       assn.allocation = 28800 unless assn.allocation
       hrs = assn.allocation / 3600.0
-      period_start = [assn.start_date, beginning_date].max
+      period_start = [assn.start_date, begin_date].max
 
       # sum time off for given date range
       period_end = [assn.end_date, end_date].min
@@ -109,9 +114,42 @@ class HarvestService
     end.compact.sum.round(2)
   end
 
-  def self.collect_logged_hours(person, assigned_hours, beginning_date, end_date)
+  # In Forecast, you can assign time off to "Everyone". That creates a
+  # Time Off project assignment with no forecast_person_id value.
+  # This function finds such company-wide time off assignments and
+  # adds that time off to each individual's assignments.
+  def self.assign_company_wide_time_off(timesheets, begin_date, end_date)
+    company_wide_time_off_assignments = ForecastAssignment.where(
+      :end_date.gte => begin_date,
+      :start_date.lte => end_date,
+      forecast_person_id: nil,
+      forecast_project_id: ForecastService::TIME_OFF_PROJECT_ID,
+    ).entries
+
+    time_off_range = 0
+    time_off_to_date = 0
+    time_off_value = company_wide_time_off_assignments.map do |assn|
+      # If a time off assignment has no allocation, we currently assume
+      # that means it represents a full day, so we set its allocation
+      # to 8 hrs (in seconds).
+      assn.allocation = 28800 unless assn.allocation
+      hrs = assn.allocation / 3600.0
+      period_start = [assn.start_date, begin_date].max
+
+      # sum time off for given date range
+      period_end = [assn.end_date, end_date].min
+      business_days = num_of_weekdays(period_start, period_end)
+      hrs * business_days
+    end.compact.sum.round(2)
+
+    # add the company-wide time off to everyone's time off value
+    timesheets.each { |d| puts d; d[:time_off] += time_off_value }
+    timesheets
+  end
+
+  def self.collect_logged_hours(person, assigned_hours, begin_date, end_date)
     harvest_logs = person.harvest_logs.where(
-      :spent_at.gte => beginning_date,
+      :spent_at.gte => begin_date,
       :spent_at.lte => end_date,
     )
     grouped = harvest_logs.group_by(&:harvest_project_id)
@@ -131,10 +169,10 @@ class HarvestService
     end.compact
   end
 
-  def self.forecast_assignments_for_range(person, beginning_date, end_date)
+  def self.forecast_assignments_for_range(person, begin_date, end_date)
     # puts "getting assignments... person_id: #{person.forecast_id}"
     assignments = ForecastAssignment.where(
-      :end_date.gte => beginning_date,
+      :end_date.gte => begin_date,
       :start_date.lte => end_date,
       forecast_person_id: person.forecast_id,
     )
@@ -144,7 +182,7 @@ class HarvestService
         project = Project.where(forecast_id: forecast_id).first
         next unless project && project.is_billable
         hrs = assn.allocation / 3600.0
-        period_start = [assn.start_date, beginning_date].max
+        period_start = [assn.start_date, begin_date].max
         period_end = [assn.end_date, end_date].min
         business_days = num_of_weekdays(period_start, period_end)
         hrs * business_days
@@ -155,7 +193,7 @@ class HarvestService
         project = Project.where(forecast_id: forecast_id).first
         next unless project && project.is_billable
         hrs = assn.allocation / 3600.0
-        period_start = [assn.start_date, beginning_date].max
+        period_start = [assn.start_date, begin_date].max
         period_end = [assn.end_date, end_date, today].min
         business_days = num_of_weekdays(period_start, period_end)
         hrs * business_days
@@ -283,7 +321,7 @@ class HarvestService
     day
   end
 
-  def self.num_of_weekdays(beginning_date, end_date)
-    (beginning_date..end_date).select { |d| (1..5).cover?(d.wday) }.size
+  def self.num_of_weekdays(begin_date, end_date)
+    (begin_date..end_date).select { |d| (1..5).cover?(d.wday) }.size
   end
 end
