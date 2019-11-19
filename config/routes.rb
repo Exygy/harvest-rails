@@ -5,6 +5,9 @@ Rails.application.routes.draw do
       scope '/timesheets' do
         get 'search' => 'timesheets#search'
       end
+      scope '/projects' do
+        get 'search' => 'projects#search'
+      end
     end
   end
 
