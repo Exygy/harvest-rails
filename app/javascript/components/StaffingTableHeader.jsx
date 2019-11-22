@@ -5,7 +5,7 @@ import { ButtonGroup, DropdownButton, MenuItem } from 'react-bootstrap';
 
 
 const StaffingTableHeader = (props) => {
-  let { period, startDate, router } = props
+  let { path, period, startDate, router } = props
   let startPeriod = period
   if (period === 'week') startPeriod = 'isoweek'
   startDate = moment(startDate, 'MMMM Do YYYY')
@@ -13,15 +13,15 @@ const StaffingTableHeader = (props) => {
   let nextDate = moment(startDate).add(1, period).format('YYYY-MM-DD')
   let currentDate = moment().startOf(startPeriod).format('YYYY-MM-DD')
 
-  let toPrev = `/search/${prevDate}/${period}`
-  let toCurrent = `/search/${currentDate}/${period}`
-  let toNext = `/search/${nextDate}/${period}`
+  let toPrev = `${path}/${prevDate}/${period}`
+  let toCurrent = `${path}/${currentDate}/${period}`
+  let toNext = `${path}/${nextDate}/${period}`
 
   var selectPeriod = (key) => {
     let startPeriod = key
     if (key === 'week') startPeriod = 'isoweek'
     let periodDate = moment().startOf(startPeriod).format('YYYY-MM-DD')
-    let href = `/search/${periodDate}/${key}`
+    let href = `${path}/${periodDate}/${key}`
     router.history.push(href)
   }
 
