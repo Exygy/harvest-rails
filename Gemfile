@@ -27,7 +27,7 @@ gem 'jbuilder', '~> 2.5'
 # Use Capistrano for deployment
 # gem 'capistrano-rails', group: :development
 
-gem 'nokogiri', '~> 1.8.0'
+gem 'nokogiri', '~> 1.10.10'
 gem 'harvested', '~> 4.0'
 gem 'forecast', github: 'Exygy/forecast'
 gem 'webpacker', '3.0.0'
