@@ -32,7 +32,7 @@ gem 'harvested', '~> 4.0'
 gem 'forecast', github: 'Exygy/forecast'
 gem 'webpacker', '3.0.0'
 # gem 'pg', '~> 0.20.0'
-gem 'dalli', '~> 2.7'
+gem 'dalli', '~> 3.2'
 gem 'mongoid', '~>7.0.2'
 
 group :development, :test do
